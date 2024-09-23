@@ -1,0 +1,195 @@
+---
+title: "Project_1_Week_4"
+author: "Robert Green"
+date: "2024-09-21"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r include=FALSE}
+library(stringr)
+library(stringi)
+
+```
+
+
+
+The text file is loaded at this step.
+```{r echo=TRUE, message=TRUE}
+
+ratings.table <- readLines("~/R_Studio_work/project_1/Project_1_table.txt")
+
+```
+
+
+
+The records for the first player is accessed by entering the player
+number '1'. This record consists of two rows.
+```{r}
+
+row_pos <- grep(" 1 \\|", ratings.table)
+
+```
+
+
+
+The first and second row position values are saved to two separate variables.
+```{r}
+
+selected_player_row <- ratings.table[row_pos]
+
+selected_player_row_2nd_line <- ratings.table[row_pos + 1]
+
+```
+
+
+
+The name of the player is retrieved from the first row and 
+added to the vector 'player_s_name.'
+```{r}
+
+col_1_name <- substr(selected_player_row, 9, 40)
+
+player_s_name <- c()
+
+player_s_name <- c(str_remove_all(col_1_name, " {2,}"))
+
+```
+
+
+
+Total points extracted and added to the 'total_number_of_points' vector.
+```{r}
+
+col_1_decimal_num     <- substr(selected_player_row,  42, 44)
+
+col_1_decimal_num <- as.double(col_1_decimal_num)
+
+total_number_of_points <- c()
+total_number_of_points <- c(col_1_decimal_num)
+
+```
+
+
+The players State is extracted from the second row of the record and 
+added the 'player_s_state' vector.
+```{r}
+
+player_s_state <- c()
+
+player_s_state <- substr(selected_player_row_2nd_line,  4,  5)
+
+```
+
+
+The pre-rating is extracted from the second row, converted to an integer 
+and added to the 'player_s_pre_rating' vector.
+```{r}
+
+second_row_r_num <- substr(selected_player_row_2nd_line, 22, 29)
+second_row_r_num <- as.integer(second_row_r_num)
+
+player_s_pre_rating <- c()
+player_s_pre_rating <- c(second_row_r_num)
+
+```
+
+
+The vector for the 'Average Pre Chess Rating of Opponents' is created.
+```{r}
+
+average_opponent_ratings <- base::vector(mode = 'integer', length = 8)
+
+```
+
+
+The outcome if each round is extracted an later saved to 'player_game_result'
+```{r}
+col_1_game_result <- substr(selected_player_row,  48, 52)
+col_2_game_result <- substr(selected_player_row,  54, 58)
+col_3_game_result <- substr(selected_player_row,  60, 64)
+col_4_game_result <- substr(selected_player_row,  66, 70)
+col_5_game_result <- substr(selected_player_row,  72, 76)
+col_6_game_result <- substr(selected_player_row,  78, 82)
+col_7_game_result <- substr(selected_player_row,  84, 88)
+```
+
+
+
+```{r}
+
+player_game_result <- c(col_1_game_result, 
+                        col_2_game_result, 
+                        col_3_game_result, 
+                        col_4_game_result, 
+                        col_5_game_result, 
+                        col_6_game_result, 
+                        col_7_game_result)
+
+```
+
+
+
+```{r}
+
+for(i in 1:length(player_game_result)) {
+  win_draw_lose <- substr(player_game_result[i], 1, 1)
+  if ((win_draw_lose == "W") | (win_draw_lose == "D") | (win_draw_lose == "L")) {
+    
+    pair_num <- str_extract(player_game_result[i], "[(0-9)]{1,}")
+    pair_num_space_pipe <-  c(" ", pair_num, "\\|")
+    pair_num_search <- str_flatten(pair_num_space_pipe, collapse = " ")
+    row_pos <- grep(pair_num_search, ratings.table)
+    
+    
+    selected_player_row <- ratings.table[row_pos]
+    selected_player_row_2nd_line <- ratings.table[row_pos + 1]
+    
+    col_1_name <- substr(selected_player_row, 9, 40)
+    name_to_append <- str_remove_all(col_1_name, " {2,}")
+    player_s_name <- c(player_s_name, name_to_append)
+    
+    state_to_append <- substr(selected_player_row_2nd_line,  4,  5)
+    player_s_state  <- c(player_s_state, state_to_append)
+    
+    col_1_decimal_num     <- substr(selected_player_row,  42, 44)
+    decimal_num_to_append <- as.double(col_1_decimal_num)
+    total_number_of_points <- c(total_number_of_points, decimal_num_to_append)
+    
+    second_row_r_num <- substr(selected_player_row_2nd_line, 22, 26)
+    r_num_to_append <- as.integer(second_row_r_num)
+    player_s_pre_rating <- c(player_s_pre_rating, r_num_to_append)
+    
+    avg_from_element_2_up <- player_s_pre_rating[2:length(player_s_pre_rating)]
+    average_pre_ratings <- as.integer(mean(avg_from_element_2_up))
+    
+    average_opponent_ratings[1] <- average_pre_ratings
+    }
+
+}
+
+```
+
+
+```{r}
+
+chess_stats <-  data.frame(player_s_name, 
+                           player_s_state, 
+                           total_number_of_points, 
+                           player_s_pre_rating, 
+                           average_opponent_ratings)
+
+
+```
+
+
+```{r}
+write.csv(chess_stats , "chess_stats.csv")
+```
