@@ -1,0 +1,88 @@
+---
+title: "WEEK-5 / Tidying and Transforming Data"
+author: "Robert Green"
+date: "2024-09-29"
+output: html_document
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyr)
+```
+
+
+This data set was downloaded from the Bureau of Transportation Statistics website. 
+A number of variables were filtered to reduce the size of the file. The file was
+then downloaded to GITHUB. Later the file was read and assigned to 'airline_data'.
+
+```{r}
+
+airline_data <- read.csv("https://raw.githubusercontent.com/RGreen-sps/scaling-umbrella/refs/heads/main/T_ONTIME_REPORTING.csv")
+
+str(airline_data)
+
+```
+
+
+The data set was filter further for 'UA', United Air Lines Inc., and 'WN', Southwest Airlines Co.
+Additional filters includes the destination city names, and the origin city Chicago, IL.
+New columns were created, 'on_time', 'delayed', and the carrier column renamed to 'airline.'
+```{r include=FALSE}
+
+airline_col_filter <- airline_data %>%
+  filter(OP_UNIQUE_CARRIER %in% c("UA", "WN"),
+         DEST_CITY_NAME %in% c("Denver, CO",
+                               "New York, NY",
+                               "Portland, OR",
+                               "Sacramento, CA",
+                               "St. Louis, MO"),
+         ORIGIN_CITY_NAME == "Chicago, IL", 
+         !is.na(ARR_DELAY)) %>% 
+  select(OP_UNIQUE_CARRIER, DEST_CITY_NAME, ARR_DELAY) %>%
+  group_by(OP_UNIQUE_CARRIER, DEST_CITY_NAME) %>% 
+  summarise(on_time = sum(ARR_DELAY <= 0), delayed = sum(ARR_DELAY > 0)) %>% 
+  arrange(DEST_CITY_NAME) %>% 
+  rename(airline = OP_UNIQUE_CARRIER)
+
+
+airline_col_filter
+
+```
+Pivot longer is used to combine the 'on_time' and 'delayed', into one column,
+the status column.
+
+```{r}
+
+airline_add_status <- airline_col_filter |>
+  pivot_longer(
+    cols = on_time:delayed,
+    names_to = "status",
+    values_to = "NAME"
+    )
+
+airline_add_status
+
+```
+pivot wider is used here to turn the values in the DEST_CITY_NAME column to now 
+act as column names for the new format.
+
+```{r}
+
+airline_compare <- airline_add_status |>
+  pivot_wider(
+    names_from = DEST_CITY_NAME,
+    values_from = NAME
+    )
+
+airline_compare
+
+```
+
+Finally the data frame is written to a CSV file.
+
+```{r}
+
+write.csv(airline_compare, "airline_arr_delay_comp", row.names = FALSE)
+
+```
